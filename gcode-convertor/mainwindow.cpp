@@ -6,14 +6,16 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    double yValue = double(40);
-    CNCCommand temp (20.0, &yValue, NULL);
-//    if (temp.z != NULL) {
-//        qDebug() << "salam";
-//    }
-//    qDebug() << temp.z;
 
+    currentX = 0.0;
+    currentY = 0.0;
 
+    tempX = new double(0.0);
+    tempY = new double(0.0);
+    tempZ = new double(0.0);
+    tempI = new double(0.0);
+    tempJ = new double(0.0);
+    temp = new CNCCommand("G0",tempX,tempY,tempZ,tempI,tempJ);
 }
 
 MainWindow::~MainWindow()
@@ -34,18 +36,13 @@ void MainWindow::on_pushButton_clicked()
 
     while(!in.atEnd()) {
         QString line = in.readLine();
-        QString type = checkType(line);
-        if (type != NULL) {
-            qDebug() << saveCNCCommand(line);
 
+        if (saveCNCCommand(line) != NULL) {
+            qDebug() << "NULL";
         }
-        QStringList fields = line.split("G2");
-        for(int row=0; row < fields.count(); row++) {
 
- //            qDebug() << fields[row];
-
-         }
-
+        currentX = *temp->x;
+        currentY = *temp->y;
     }
 
     file.close();
@@ -56,15 +53,19 @@ CNCCommand* MainWindow::saveCNCCommand(QString line) {
     if (type == NULL) {
         return NULL;
     } else {
-        QString x = getComponentValue("X", line);
-        QString y = getComponentValue("Y", line);
-        QString z = getComponentValue("Z", line);
-        QString i = getComponentValue("I", line);
-        QString j = getComponentValue("J", line);
+        *tempX = double(getComponentValue("X", line).toDouble());
+        *tempY = double(getComponentValue("Y", line).toDouble());
+        *tempZ = double(getComponentValue("Z", line).toDouble());
+        *tempI = double(getComponentValue("I", line).toDouble());
+        *tempJ = double(getComponentValue("J", line).toDouble());
+        temp->type = type;
 
-
-        return NULL;
+        return temp;
     }
+}
+
+void MainWindow::copyExactCode() {
+
 
 }
 
@@ -88,8 +89,8 @@ QString MainWindow::checkType(QString line) {
 }
 
 QString MainWindow::getComponentValue(QString component, QString line) {
-    QStringList values = line.split("X");
-    qDebug() << " current " << line;
+    QStringList values = line.split(component);
+//    qDebug() << " current " << line;
     if (values.count() == 2) {
         QString s = values[1];
         QString variables = "";

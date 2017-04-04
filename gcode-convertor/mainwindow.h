@@ -29,7 +29,19 @@ private:
     QString checkType(QString line);
 
     CNCCommand *temp;
+    double *tempX;
+    double *tempY;
+    double *tempZ;
+    double *tempI;
+    double *tempJ;
 
+    double currentX;
+    double currentY;
+
+    QString cncCode;
+
+
+    void copyExactCode();
     Ui::MainWindow *ui;
     CNCCommand *tempCNCCommand;
     Eigen::Vector3f m_lastKnownPosOfTip;
