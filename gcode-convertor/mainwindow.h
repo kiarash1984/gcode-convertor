@@ -3,6 +3,7 @@
 #include <QMainWindow>
 #include <Eigen/Core>
 #include "cnccommand.h"
+#include "command.h"
 #include <QFileDialog>
 #include <QDebug>
 #include <QMessageBox>>
@@ -25,15 +26,22 @@ private slots:
 
 private:
     CNCCommand* saveCNCCommand(QString line);
+    Command* saveCommand(QString line);
     QString getComponentValue(QString component, QString line);
+    QString getComponentValueOLD(QString component, QString line);
     QString checkType(QString line);
+    QString checkTypeOLD(QString line);
+    void getDoubleValue(QString component, QString line);
 
     CNCCommand *temp;
+    Command *tempCommand;
     double *tempX;
     double *tempY;
     double *tempZ;
     double *tempI;
     double *tempJ;
+
+    double *tempDoubleValue;
 
     double currentX;
     double currentY;

@@ -15,7 +15,9 @@ MainWindow::MainWindow(QWidget *parent) :
     tempZ = new double(0.0);
     tempI = new double(0.0);
     tempJ = new double(0.0);
+    tempDoubleValue = new double(0.0);
     temp = new CNCCommand("G0",tempX,tempY,tempZ,tempI,tempJ);
+    tempCommand = new Command("NA","NA","NA","NA","NA","NA");
 }
 
 MainWindow::~MainWindow()
@@ -37,15 +39,28 @@ void MainWindow::on_pushButton_clicked()
     while(!in.atEnd()) {
         QString line = in.readLine();
 
-        if (saveCNCCommand(line) != NULL) {
-            qDebug() << "NULL";
-        }
+        qDebug() << tempCommand->type;
+        qDebug() << tempCommand->x;
+        qDebug() << tempCommand->y;
+        qDebug() << tempCommand->z;
+        qDebug() << tempCommand->i;
+        qDebug() << tempCommand->j;
 
+        saveCommand(line);
         currentX = *temp->x;
         currentY = *temp->y;
     }
 
     file.close();
+}
+Command* MainWindow::saveCommand(QString line) {
+    tempCommand->type = checkType(line);
+    tempCommand->x = getComponentValue("X",line);
+    tempCommand->y = getComponentValue("Y",line);
+    tempCommand->z = getComponentValue("Z",line);
+    tempCommand->i = getComponentValue("I",line);
+    tempCommand->j = getComponentValue("J",line);
+
 }
 
 CNCCommand* MainWindow::saveCNCCommand(QString line) {
@@ -53,15 +68,37 @@ CNCCommand* MainWindow::saveCNCCommand(QString line) {
     if (type == NULL) {
         return NULL;
     } else {
-        *tempX = double(getComponentValue("X", line).toDouble());
-        *tempY = double(getComponentValue("Y", line).toDouble());
-        *tempZ = double(getComponentValue("Z", line).toDouble());
-        *tempI = double(getComponentValue("I", line).toDouble());
-        *tempJ = double(getComponentValue("J", line).toDouble());
+        this->getDoubleValue("X",line);
+        tempX = tempDoubleValue;
+        this->getDoubleValue("Y",line);
+        tempY = tempDoubleValue;
+        this->getDoubleValue("Z",line);
+        tempZ = tempDoubleValue;
+        this->getDoubleValue("I",line);
+        tempI = tempDoubleValue;
+        this->getDoubleValue("J",line);
+        tempJ = tempDoubleValue;
+
         temp->type = type;
 
+
+        qDebug() << temp->i;
+        qDebug() << temp->x;
+        qDebug() << temp->y;
+        qDebug() << temp->z;
+        qDebug() << temp->j;
+//        CNCCommand *t2 = new CNCCommand("SAD",NULL,NULL,NULL,NULL,NULL);
+//        qDebug() << t2->x;
         return temp;
     }
+}
+
+void MainWindow::getDoubleValue(QString component, QString line) {
+    QString temp = getComponentValue(component, line);
+    if (temp.count() > 0) {
+        *tempDoubleValue = double(temp.toDouble());
+    }
+    tempDoubleValue = NULL;
 }
 
 void MainWindow::copyExactCode() {
@@ -69,7 +106,7 @@ void MainWindow::copyExactCode() {
 
 }
 
-QString MainWindow::checkType(QString line) {
+QString MainWindow::checkTypeOLD(QString line) {
     QStringList g0Check = line.split("G0");
     QStringList g1Check = line.split("G1");
     QStringList g2Check = line.split("G2");
@@ -88,7 +125,51 @@ QString MainWindow::checkType(QString line) {
     }
 }
 
+QString MainWindow::checkType(QString line) {
+    QStringList g0Check = line.split("G0");
+    QStringList g1Check = line.split("G1");
+    QStringList g2Check = line.split("G2");
+    QStringList g3Check = line.split("G3");
+
+    if (g0Check.count() == 2) {
+        return "G0";
+    } else if (g1Check.count() == 2) {
+        return "G1";
+    } else if (g2Check.count() == 2) {
+        return "G2";
+    } else if (g3Check.count() == 2) {
+        return "G3";
+    } else {
+        return "NA";
+    }
+}
+
 QString MainWindow::getComponentValue(QString component, QString line) {
+    QStringList values = line.split(component);
+//    qDebug() << " current " << line;
+    if (values.count() == 2) {
+        QString s = values[1];
+        QString variables = "";
+        for(int i=0;i<s.length(); ++i)
+        {
+                if(!s[i].isLetter())
+                        variables+=s[i];
+                else
+                    return variables;
+        }
+        return variables;
+
+        QRegExp rx("[A-Z]"); //RegEx for ' ' or ',' or '.' or ':' or '\t'
+        QStringList query = line.split(rx);
+        if (query.count() >= 2) {
+            return QString(query.count());
+        }
+        return values[1];
+    }
+    return "NA";
+}
+
+QString MainWindow::getComponentValueOLD(QString component, QString line) {
     QStringList values = line.split(component);
 //    qDebug() << " current " << line;
     if (values.count() == 2) {
