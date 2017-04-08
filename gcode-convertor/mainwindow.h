@@ -25,24 +25,14 @@ private slots:
     void on_pushButton_clicked();
 
 private:
-    CNCCommand* saveCNCCommand(QString line);
-    Command* saveCommand(QString line);
+
+    void saveCommand(QString line);
     QString getComponentValue(QString component, QString line);
-    QString getComponentValueOLD(QString component, QString line);
     QString checkType(QString line);
-    QString checkTypeOLD(QString line);
-    void getDoubleValue(QString component, QString line);
-
-    CNCCommand *temp;
+    void convertArcToLine();
+    double getAngle(Eigen::Vector2d vector, Eigen::Vector2d axis);
+    Eigen::Vector2d getPointsForRotation(Eigen::Vector2d vectorD,Eigen::Vector2d distVector ,double radius, double angle);
     Command *tempCommand;
-    double *tempX;
-    double *tempY;
-    double *tempZ;
-    double *tempI;
-    double *tempJ;
-
-    double *tempDoubleValue;
-
     double currentX;
     double currentY;
 
@@ -51,7 +41,7 @@ private:
 
     void copyExactCode();
     Ui::MainWindow *ui;
-    CNCCommand *tempCNCCommand;
-    Eigen::Vector3f m_lastKnownPosOfTip;
+    Eigen::Vector3f tempVector1;
+
 };
 
