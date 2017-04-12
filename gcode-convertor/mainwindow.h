@@ -7,6 +7,7 @@
 #include <QFileDialog>
 #include <QDebug>
 #include <QMessageBox>>
+#include <QQuaternion>
 
 
 namespace Ui {
@@ -25,7 +26,7 @@ private slots:
     void on_pushButton_clicked();
 
 private:
-
+    Eigen::Vector2d rotateAroundVector(Eigen::Vector2d rotateThis, Eigen::Vector2d around);
     void saveCommand(QString line);
     QString getComponentValue(QString component, QString line);
     QString checkType(QString line);

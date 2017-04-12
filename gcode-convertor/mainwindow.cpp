@@ -36,6 +36,7 @@ void MainWindow::on_pushButton_clicked()
         if (tempCommand->type == "G0" || tempCommand->type == "G1") {
             this->copyExactCode();
         } else if (tempCommand->type == "G2" || tempCommand->type == "G3") {
+            qDebug() << "current line" << line;
             this->convertArcToLine();
         }
         if (tempCommand->x != QString("NA")) {
@@ -49,6 +50,39 @@ void MainWindow::on_pushButton_clicked()
 //    qDebug() << cncCode;
     file.close();
 }
+
+Eigen::Vector2d MainWindow::rotateAroundVector(Eigen::Vector2d rotateThis, Eigen::Vector2d around)
+    {
+    around.normalize();
+
+    /*
+    Eigen::Matrix3d m;
+    m = Eigen::AngleAxis(0.25*M_PI, Vector3f::UnitX())
+      * Eigen::AngleAxis(0.5*M_PI,  Vector3f::UnitY())
+      * Eigen::AngleAxis(0.33*M_PI, Eigen::Vector3f(0,0,0));
+*/
+
+    /*
+    const Vec3& direction, const Vec3& up = Vec3(0,1,0)
+        Vec3 xaxis = Vec3::Cross(up, direction);
+        xaxis.normalizeFast();
+
+        Vec3 yaxis = Vec3::Cross(direction, xaxis);
+        yaxis.normalizeFast();
+
+        column1.x = xaxis.x;
+        column1.y = yaxis.x;
+        column1.z = direction.x;
+
+        column2.x = xaxis.y;
+        column2.y = yaxis.y;
+        column2.z = direction.y;
+
+        column3.x = xaxis.z;
+        column3.y = yaxis.z;
+        column3.z = direction.z;
+        */
+    }
 
 void MainWindow::saveCommand(QString line) {
     tempCommand->type = checkType(line);
@@ -64,7 +98,7 @@ void MainWindow::convertArcToLine() {
 
     Eigen::Vector2d vectorA = Eigen::Vector2d(currentX, currentY);
     Eigen::Vector2d vectorB = Eigen::Vector2d(tempCommand->x.toDouble(), tempCommand->y.toDouble());
-    Eigen::Vector2d translationVector = Eigen::Vector2d(tempCommand->i.toDouble(), tempCommand->j.toDouble()).reverse();
+    Eigen::Vector2d translationVector = Eigen::Vector2d(-tempCommand->i.toDouble(), -tempCommand->j.toDouble());
     Eigen::Vector2d iVector = Eigen::Vector2d(tempCommand->i.toDouble(), tempCommand->j.toDouble());
     Eigen::Vector2d vectorD = vectorA + iVector;
     Eigen::Vector2d vectorE = vectorB - vectorD;
@@ -86,7 +120,9 @@ void MainWindow::convertArcToLine() {
             step = 1.0;
         }
     }
+
     qDebug() << "startphi" << startPhi;
+    qDebug() << "endphi" << endPhi;
 
 //    qDebug() << vectorA[0] << "," << vectorA[1];
 //    qDebug() << vectorB[0] << "," << vectorB[1];
@@ -95,9 +131,17 @@ void MainWindow::convertArcToLine() {
 double MainWindow::getAngle(Eigen::Vector2d vector, Eigen::Vector2d axis) {
     double dotProduct = vector.dot(axis);
     double length = vector.norm() + axis.norm();
-    qDebug() << "vector" << vector[0] << "," << vector[1];
-    qDebug() << "length" << length;
-    return acos(dotProduct/length);
+    double result = dotProduct/length;
+    if (result > 1.0) {
+        result = 1.0;
+    }
+    if (result < -1.0) {
+        result = -1.0;
+    }
+    return atan2(Eigen::Vector3d(vector, 0.0).cross(Eigen::Vector3d(axis, 0.0)),
+            Eigen::Vector3d(vector, 0.0).dot(Eigen::Vector3d(axis, 0.0)));
+
+    return acos(result);
 }
 
 Eigen::Vector2d MainWindow::getPointsForRotation(Eigen::Vector2d vectorD,Eigen::Vector2d distVector ,double radius, double angle) {
