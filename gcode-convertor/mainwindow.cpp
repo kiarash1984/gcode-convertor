@@ -9,8 +9,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
     currentX = 0.0;
     currentY = 0.0;
-
+    speed = 0.0;
+    scaleFactor = 1.0;
     tempCommand = new Command("NA","NA","NA","NA","NA","NA");
+
 }
 
 MainWindow::~MainWindow()
@@ -21,7 +23,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_pushButton_clicked()
 {
-    QString path = QFileDialog::getOpenFileName(this, "Open g-code file", QString("../../../../../../Desktop"));
+    path = QFileDialog::getOpenFileName(this, "Open g-code file", QString("../../../../../../Desktop"));
     QFile file(path);
     if(!file.open(QIODevice::ReadOnly)) {
         QMessageBox::information(0, "error", file.errorString());
@@ -32,57 +34,94 @@ void MainWindow::on_pushButton_clicked()
     while(!in.atEnd()) {
         QString line = in.readLine();
 
-        saveCommand(line);
-        if (tempCommand->type == "G0" || tempCommand->type == "G1") {
-            this->copyExactCode();
-        } else if (tempCommand->type == "G2" || tempCommand->type == "G3") {
-            qDebug() << "current line" << line;
-            this->convertArcToLine();
-        }
-        if (tempCommand->x != QString("NA")) {
-            currentX = tempCommand->x.toDouble();
-        }
-        if (tempCommand->y != QString("NA")) {
-            currentY = tempCommand->y.toDouble();
-        }
+        getDiemension(line);
 
     }
-//    qDebug() << cncCode;
+
+    this->ui->startX->setText(QString::number(startXValue));
+    this->ui->endX->setText(QString::number(endXValue));
+
+    this->ui->startY->setText(QString::number(startYValue));
+    this->ui->endY->setText(QString::number(endYValue));
+
+    this->ui->lblWidth->setText(QString::number(gcodeWidth));
+    this->ui->lblHeight->setText(QString::number(gcodeHeight));
+
+    this->ui->btnConvert->setEnabled(true);
+
     file.close();
 }
 
-Eigen::Vector2d MainWindow::rotateAroundVector(Eigen::Vector2d rotateThis, Eigen::Vector2d around)
-    {
-    around.normalize();
-
-    /*
-    Eigen::Matrix3d m;
-    m = Eigen::AngleAxis(0.25*M_PI, Vector3f::UnitX())
-      * Eigen::AngleAxis(0.5*M_PI,  Vector3f::UnitY())
-      * Eigen::AngleAxis(0.33*M_PI, Eigen::Vector3f(0,0,0));
-*/
-
-    /*
-    const Vec3& direction, const Vec3& up = Vec3(0,1,0)
-        Vec3 xaxis = Vec3::Cross(up, direction);
-        xaxis.normalizeFast();
-
-        Vec3 yaxis = Vec3::Cross(direction, xaxis);
-        yaxis.normalizeFast();
-
-        column1.x = xaxis.x;
-        column1.y = yaxis.x;
-        column1.z = direction.x;
-
-        column2.x = xaxis.y;
-        column2.y = yaxis.y;
-        column2.z = direction.y;
-
-        column3.x = xaxis.z;
-        column3.y = yaxis.z;
-        column3.z = direction.z;
-        */
+void MainWindow::saveToFile(QString path) {
+    QStringList stringSplit = path.split("/");
+    QString filename = "";
+    for (int i = 0 ; i<stringSplit.count() - 1 ; i++) {
+        filename = filename + stringSplit[i] + "/";
     }
+    filename = filename + "gcode-converted.txt";
+
+    QFile file( filename );
+    if ( file.open(QIODevice::ReadWrite) )
+    {
+        qDebug() << "writing file" << "in path" << filename;
+        QTextStream stream( &file );
+        stream << cncCode << endl;
+    } else {
+        qDebug() << "error";
+    }
+}
+
+void MainWindow::startConverting() {
+    if (this->ui->inputWidth->text() != "" && this->ui->inputHeight->text() != "" && this->ui->btnScale->isChecked() == true) {
+        double xDif = this->ui->inputWidth->text().toDouble() - gcodeWidth;
+        double yDif = this->ui->inputHeight->text().toDouble() - gcodeHeight;
+        if (xDif < 0.0 && yDif < 0) {
+            if (xDif < yDif) {
+                scaleFactor = this->ui->inputHeight->text().toDouble() / gcodeHeight;
+            } else {
+                scaleFactor = this->ui->inputWidth->text().toDouble() / gcodeWidth;
+            }
+
+        } else if (xDif < 0.0 && yDif > 0.0) {
+            scaleFactor = this->ui->inputWidth->text().toDouble() / gcodeWidth;
+        } else if (yDif < 0.0 && xDif > 0.0) {
+            scaleFactor = this->ui->inputHeight->text().toDouble() / gcodeHeight;
+        }
+    }
+    qDebug() << "SCALEFACTOR" << scaleFactor;
+
+    if (this->ui->inputSpeed->text() != "") {
+        speed = this->ui->inputSpeed->text().toDouble();
+    }
+}
+
+void MainWindow::getDiemension(QString line) {
+    tempCommand->type = checkType(line);
+    if (tempCommand->type != "NA") {
+        // set min and max X
+        tempCommand->x = getComponentValue("X",line);
+        if (tempCommand->x != "NA") {
+            if (startXValue > tempCommand->x.toDouble()) {
+                startXValue = tempCommand->x.toDouble();
+            }
+            if (endXValue < tempCommand->x.toDouble()) {
+                endXValue = tempCommand->x.toDouble();
+            }
+        }
+        // set min and max Y
+        tempCommand->y = getComponentValue("Y",line);
+        if (tempCommand->y != "NA") {
+            if (startYValue > tempCommand->y.toDouble()) {
+                startYValue = tempCommand->y.toDouble();
+            }
+            if (endYValue < tempCommand->y.toDouble()) {
+                endYValue = tempCommand->y.toDouble();
+            }
+        }
+    }
+    gcodeWidth = qAbs(startXValue - endXValue);
+    gcodeHeight = qAbs(startYValue - endYValue);
+}
 
 void MainWindow::saveCommand(QString line) {
     tempCommand->type = checkType(line);
@@ -91,19 +130,24 @@ void MainWindow::saveCommand(QString line) {
     tempCommand->z = getComponentValue("Z",line);
     tempCommand->i = getComponentValue("I",line);
     tempCommand->j = getComponentValue("J",line);
+}
 
+void MainWindow::noConvertNeeded() {
+    this->writeToGcode(tempCommand->x, tempCommand->y);
+    currentX = tempCommand->x.toDouble();
+    currentY = tempCommand->y.toDouble();
 }
 
 void MainWindow::convertArcToLine() {
 
-    Eigen::Vector2d vectorA = Eigen::Vector2d(currentX, currentY);
-    Eigen::Vector2d vectorB = Eigen::Vector2d(tempCommand->x.toDouble(), tempCommand->y.toDouble());
-    Eigen::Vector2d translationVector = Eigen::Vector2d(-tempCommand->i.toDouble(), -tempCommand->j.toDouble());
-    Eigen::Vector2d iVector = Eigen::Vector2d(tempCommand->i.toDouble(), tempCommand->j.toDouble());
-    Eigen::Vector2d vectorD = vectorA + iVector;
-    Eigen::Vector2d vectorE = vectorB - vectorD;
+    QVector3D vectorA = QVector3D(currentX, currentY, 0.0);
+    QVector3D vectorB = QVector3D(tempCommand->x.toDouble(), tempCommand->y.toDouble(), 0.0);
+    QVector3D translationVector = QVector3D(-tempCommand->i.toDouble(), -tempCommand->j.toDouble(), 0.0);
+    QVector3D iVector = QVector3D(tempCommand->i.toDouble(), tempCommand->j.toDouble(), 0.0);
+    QVector3D vectorD = vectorA + iVector;
+    QVector3D vectorE = vectorB - vectorD;
 
-    double startPhi = this->getAngle(translationVector, Eigen::Vector2d(1.0,0.0));
+    double startPhi = this->getAngle(translationVector, QVector3D(1.0, 0.0, 0.0));
     if (translationVector[1] < 0) {
         startPhi = -startPhi;
     }
@@ -113,54 +157,97 @@ void MainWindow::convertArcToLine() {
     } else {
         endPhi = startPhi - endPhi;
     }
-    double radius = iVector.norm();
-    if ((vectorA - vectorB).norm() > 2.0) {
+    double radius = iVector.length();
+    if ((vectorA - vectorB).length() > 0.5) {
+        // define step here
+        /*
         double step = (startPhi - endPhi) / 3.0;
         if ((startPhi - endPhi) < 0.5) {
             step = 1.0;
         }
+        */
+        double step = qAbs(startPhi - endPhi) * radius / 2.0;
+
+
+        /* converting here for G3 */
+        if (tempCommand->type == "G3") {
+            while (startPhi > endPhi) {
+                /*qDebug() << "current angle" << startPhi;*/
+               startPhi -= step;
+               if (startPhi >= endPhi) {
+                   this->calculatePoint(vectorD, startPhi, radius);
+               } else {
+                   this->writeToGcode(tempCommand->x, tempCommand->y);
+                   // set current X and Y
+                   currentX = tempCommand->x.toDouble();
+                   currentY = tempCommand->y.toDouble();
+                   /*qDebug() << "converted = " << "G1" << " X" << tempCommand->x << " " << "Y" << tempCommand->y;*/
+               }
+            }
+        } else {
+            // convert here for G2
+            while (startPhi < endPhi) {
+                /*qDebug() << "current angle" << startPhi;*/
+               startPhi += step;
+               if (startPhi <= endPhi) {
+                   this->calculatePoint(vectorD, startPhi, radius);
+               } else {
+                   this->writeToGcode(tempCommand->x, tempCommand->y);
+                   // set current X and Y
+                   currentX = tempCommand->x.toDouble();
+                   currentY = tempCommand->y.toDouble();
+                   /*qDebug() << "converted = " << "G1" << " X" << tempCommand->x << " " << "Y" << tempCommand->y;*/
+               }
+            }
+        }
+
+
+    } else {
+        this->noConvertNeeded();
     }
 
-    qDebug() << "startphi" << startPhi;
-    qDebug() << "endphi" << endPhi;
 
-//    qDebug() << vectorA[0] << "," << vectorA[1];
-//    qDebug() << vectorB[0] << "," << vectorB[1];
-//    qDebug() << vectorD[0] << "," << vectorD[1];
 }
-double MainWindow::getAngle(Eigen::Vector2d vector, Eigen::Vector2d axis) {
-    double dotProduct = vector.dot(axis);
-    double length = vector.norm() + axis.norm();
-    double result = dotProduct/length;
-    if (result > 1.0) {
-        result = 1.0;
+
+void MainWindow::writeToGcode(QString x, QString y) {
+    cncCode = cncCode + "G1" + " X" + x + " Y" + y;
+    if (speed != 0.0) {
+        cncCode = cncCode + " F" + QString::number(speed);
     }
-    if (result < -1.0) {
-        result = -1.0;
-    }
-    return atan2(Eigen::Vector3d(vector, 0.0).cross(Eigen::Vector3d(axis, 0.0)),
-            Eigen::Vector3d(vector, 0.0).dot(Eigen::Vector3d(axis, 0.0)));
-
-    return acos(result);
+    cncCode = cncCode + "\n";
 }
 
-Eigen::Vector2d MainWindow::getPointsForRotation(Eigen::Vector2d vectorD,Eigen::Vector2d distVector ,double radius, double angle) {
-
+double MainWindow::getAngle(QVector3D vector, QVector3D axis) {
+    return qAtan2(QVector3D().crossProduct(vector, axis).length(), QVector3D().dotProduct(vector, axis));
 }
+
+void MainWindow::calculatePoint(QVector3D vectorD, double angle, double radius) {
+    double xValue = radius * qCos(angle) + vectorD.x();
+    double yValue = radius * qSin(angle) + vectorD.y();
+    this->writeToGcode(QString::number(xValue), QString::number(yValue));
+
+    // set current X and Y
+    currentX = xValue;
+    currentY = yValue;
+}
+
 
 void MainWindow::copyExactCode() {
 
-    cncCode = cncCode + tempCommand->type + " ";
+    cncCode = cncCode + tempCommand->type;
     if (tempCommand->x != "NA") {
-        cncCode = cncCode + "X" + tempCommand->x + " ";
+        cncCode = cncCode + " X" + tempCommand->x;
     }
     if (tempCommand->y != "NA") {
-        cncCode = cncCode + "Y" + tempCommand->y + " ";
+        cncCode = cncCode + " Y" + tempCommand->y;
     }
     if (tempCommand->z != "NA") {
-        cncCode = cncCode + "Z" + tempCommand->z + " ";
+        cncCode = cncCode + " Z" + tempCommand->z;
     }
-    cncCode = cncCode + "\t";
+    if (speed != 0) {
+        cncCode = cncCode + " F" + QString::number(speed);
+    }
+    cncCode = cncCode + "\n";
 }
 
 QString MainWindow::checkType(QString line) {
@@ -198,9 +285,51 @@ QString MainWindow::getComponentValue(QString component, QString line) {
                 break;
             }
         }
-        return variables;
+        if (component == "Z" || scaleFactor == 1.0) {
+            return variables;
+        } else {
+            double value = variables.toDouble() * scaleFactor;
+            return QString::number(value);
+        }
     }
     return "NA";
 }
 
 
+
+void MainWindow::on_btnConvert_clicked()
+{
+    this->startConverting();
+
+    QFile file(path);
+    if(!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::information(0, "error", file.errorString());
+    }
+    QTextStream in(&file);
+
+    while(!in.atEnd()) {
+        QString line = in.readLine();
+
+        saveCommand(line);
+
+
+        if (tempCommand->type == "G0" || tempCommand->type == "G1") {
+            this->copyExactCode();
+        } else if (tempCommand->type == "G2" || tempCommand->type == "G3") {
+            /*qDebug() << "current line" << line;*/
+            this->convertArcToLine();
+        }
+        if (tempCommand->x != QString("NA")) {
+            currentX = tempCommand->x.toDouble();
+        }
+        if (tempCommand->y != QString("NA")) {
+            currentY = tempCommand->y.toDouble();
+        }
+
+    }
+    /*qDebug() << cncCode;*/
+    this->saveToFile(path);
+
+
+    file.close();
+}

@@ -35,5 +35,4 @@ HEADERS  += mainwindow.h \
 
 FORMS    += mainwindow.ui
 
-INCLUDEPATH += ../../../../../usr/local/include/eigen3/
 
