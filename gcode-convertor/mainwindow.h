@@ -1,11 +1,14 @@
 #pragma once
 
 #include <QMainWindow>
-#include <Eigen/Core>
 #include "cnccommand.h"
+#include "command.h"
 #include <QFileDialog>
 #include <QDebug>
 #include <QMessageBox>>
+#include <QQuaternion>
+#include <QVector3D>
+#include <QtMath>
 
 
 namespace Ui {
@@ -23,15 +26,41 @@ public:
 private slots:
     void on_pushButton_clicked();
 
+    void on_btnConvert_clicked();
+
 private:
-    CNCCommand* saveCNCCommand(QString line);
+
+    void saveToFile(QString path);
+    void saveCommand(QString line);
+    void getDiemension(QString line);
     QString getComponentValue(QString component, QString line);
     QString checkType(QString line);
+    void convertArcToLine();
+    double getAngle(QVector3D vector, QVector3D axis);
+    void writeToGcode(QString x, QString y);
+    Command *tempCommand;
+    double currentX;
+    double currentY;
+    double startXValue;
+    double startYValue;
+    double endXValue;
+    double endYValue;
+    double gcodeWidth;
+    double gcodeHeight;
+    double stockWidth;
+    double stockHeight;
+    double speed;
+    double scaleFactor;
+    QString path;
 
-    CNCCommand *temp;
+    void calculatePoint(QVector3D vectorD, double angle, double radius);
+    void noConvertNeeded();
+    QString cncCode;
 
+    void startConverting();
+    void copyExactCode();
     Ui::MainWindow *ui;
-    CNCCommand *tempCNCCommand;
-    Eigen::Vector3f m_lastKnownPosOfTip;
+    QVector3D tempVector1;
+
 };
 
