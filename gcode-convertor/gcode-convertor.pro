@@ -26,11 +26,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    cnccommand.cpp \
     command.cpp
 
 HEADERS  += mainwindow.h \
-    cnccommand.h \
     command.h
 
 FORMS    += mainwindow.ui
