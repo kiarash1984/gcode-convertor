@@ -152,7 +152,7 @@ void MainWindow::convertArcToLine() {
         startPhi = -startPhi;
     }
     double endPhi = this->getAngle(translationVector, vectorE);
-    if (tempCommand->type == "G2") {
+    if (tempCommand->type == "G3") {
         endPhi = startPhi + endPhi;
     } else {
         endPhi = startPhi - endPhi;
@@ -167,12 +167,13 @@ void MainWindow::convertArcToLine() {
         }
         */
         double step = qAbs(startPhi - endPhi) * radius / 2.0;
+        step = 0.01;
 
-
-        /* converting here for G3 */
-        if (tempCommand->type == "G3") {
+        /* converting here for G2 */
+        if (tempCommand->type == "G2") {
             while (startPhi > endPhi) {
                 /*qDebug() << "current angle" << startPhi;*/
+                qDebug() << "start";
                startPhi -= step;
                if (startPhi >= endPhi) {
                    this->calculatePoint(vectorD, startPhi, radius);
@@ -184,9 +185,11 @@ void MainWindow::convertArcToLine() {
                    /*qDebug() << "converted = " << "G1" << " X" << tempCommand->x << " " << "Y" << tempCommand->y;*/
                }
             }
+            qDebug() << "end";
         } else {
-            // convert here for G2
+            // convert here for G3
             while (startPhi < endPhi) {
+                qDebug() << "start";
                 /*qDebug() << "current angle" << startPhi;*/
                startPhi += step;
                if (startPhi <= endPhi) {
@@ -199,6 +202,7 @@ void MainWindow::convertArcToLine() {
                    /*qDebug() << "converted = " << "G1" << " X" << tempCommand->x << " " << "Y" << tempCommand->y;*/
                }
             }
+            qDebug() << "end";
         }
 
 
@@ -225,6 +229,8 @@ void MainWindow::calculatePoint(QVector3D vectorD, double angle, double radius) 
     double xValue = radius * qCos(angle) + vectorD.x();
     double yValue = radius * qSin(angle) + vectorD.y();
     this->writeToGcode(QString::number(xValue), QString::number(yValue));
+
+    qDebug() << "After converting" << "x " << xValue << " y " << yValue;
 
     // set current X and Y
     currentX = xValue;
