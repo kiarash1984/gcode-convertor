@@ -12,6 +12,8 @@ MainWindow::MainWindow(QWidget *parent) :
     speed = 0.0;
     scaleFactor = 1.0;
     tempCommand = new Command("NA","NA","NA","NA","NA","NA");
+    isSolidWorkFile = false;
+    lastGCommand = "";
 
 }
 
@@ -257,18 +259,44 @@ void MainWindow::copyExactCode() {
 }
 
 QString MainWindow::checkType(QString line) {
-    QStringList g0Check = line.split("G0");
-    QStringList g1Check = line.split("G1");
-    QStringList g2Check = line.split("G2");
-    QStringList g3Check = line.split("G3");
+    QStringList g0Check = line.split(isSolidWorkFile == false ? "G0" : "G00");
+    QStringList g1Check = line.split(isSolidWorkFile == false ? "G1" : "G01");
+    QStringList g2Check = line.split(isSolidWorkFile == false ? "G2" : "G02");
+    QStringList g3Check = line.split(isSolidWorkFile == false ? "G3" : "G03");
+
+    qDebug() << "------------ NEW--------------------";
+
+    if (isSolidWorkFile) {
+        if (g0Check.count() < 2 && g1Check.count() < 2 && g2Check.count() < 2 && g3Check.count() < 2) {
+            QStringList mCheck = line.split("M");
+            if (mCheck.count() < 2) {
+                if (lastGCommand != "") {
+                    tempCommand->type = lastGCommand;
+                    qDebug() << "in first" << lastGCommand;
+                    return lastGCommand;
+                }
+            } else if (mCheck.count() == 2) {
+                qDebug() << "reset last command" << lastGCommand;
+                lastGCommand = "";
+            }
+        }
+    }
 
     if (g0Check.count() == 2) {
+        lastGCommand = "G0";
+        qDebug() << "Returning G0";
         return "G0";
     } else if (g1Check.count() == 2) {
+        lastGCommand = "G1";
+        qDebug() << "Returning G1";
         return "G1";
     } else if (g2Check.count() == 2) {
+        qDebug() << "Returning G2";
+        lastGCommand = "G2";
         return "G2";
     } else if (g3Check.count() == 2) {
+        qDebug() << "Returning G3";
+        lastGCommand = "G3";
         return "G3";
     } else {
         return "NA";
@@ -338,4 +366,9 @@ void MainWindow::on_btnConvert_clicked()
 
 
     file.close();
+}
+
+void MainWindow::on_radioButton_clicked(bool checked)
+{
+    isSolidWorkFile = checked;
 }

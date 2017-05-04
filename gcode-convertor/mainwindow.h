@@ -28,6 +28,8 @@ private slots:
 
     void on_btnConvert_clicked();
 
+    void on_radioButton_clicked(bool checked);
+
 private:
 
     void saveToFile(QString path);
@@ -52,6 +54,9 @@ private:
     double speed;
     double scaleFactor;
     QString path;
+    bool isSolidWorkFile;
+
+    QString lastGCommand;
 
     void calculatePoint(QVector3D vectorD, double angle, double radius);
     void noConvertNeeded();
