@@ -14,12 +14,15 @@ MainWindow::MainWindow(QWidget *parent) :
     tempCommand = new Command("NA","NA","NA","NA","NA","NA");
     isSolidWorkFile = false;
     lastGCommand = "";
+    progressionForm = new ProgressionForm;
+    numberOfLines = 0;
 
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+
 }
 
 
@@ -35,7 +38,7 @@ void MainWindow::on_pushButton_clicked()
 
     while(!in.atEnd()) {
         QString line = in.readLine();
-
+        numberOfLines += 1;
         getDiemension(line);
 
     }
@@ -264,7 +267,6 @@ QString MainWindow::checkType(QString line) {
     QStringList g2Check = line.split(isSolidWorkFile == false ? "G2" : "G02");
     QStringList g3Check = line.split(isSolidWorkFile == false ? "G3" : "G03");
 
-    qDebug() << "------------ NEW--------------------";
 
     if (isSolidWorkFile) {
         if (g0Check.count() < 2 && g1Check.count() < 2 && g2Check.count() < 2 && g3Check.count() < 2) {
@@ -272,11 +274,9 @@ QString MainWindow::checkType(QString line) {
             if (mCheck.count() < 2) {
                 if (lastGCommand != "") {
                     tempCommand->type = lastGCommand;
-                    qDebug() << "in first" << lastGCommand;
                     return lastGCommand;
                 }
             } else if (mCheck.count() == 2) {
-                qDebug() << "reset last command" << lastGCommand;
                 lastGCommand = "";
             }
         }
@@ -284,18 +284,14 @@ QString MainWindow::checkType(QString line) {
 
     if (g0Check.count() == 2) {
         lastGCommand = "G0";
-        qDebug() << "Returning G0";
         return "G0";
     } else if (g1Check.count() == 2) {
         lastGCommand = "G1";
-        qDebug() << "Returning G1";
         return "G1";
     } else if (g2Check.count() == 2) {
-        qDebug() << "Returning G2";
         lastGCommand = "G2";
         return "G2";
     } else if (g3Check.count() == 2) {
-        qDebug() << "Returning G3";
         lastGCommand = "G3";
         return "G3";
     } else {
@@ -333,6 +329,10 @@ QString MainWindow::getComponentValue(QString component, QString line) {
 
 void MainWindow::on_btnConvert_clicked()
 {
+    int currentLine = 1;
+    double temp = 0.0;
+
+    progressionForm->show();
     this->startConverting();
 
     QFile file(path);
@@ -342,8 +342,14 @@ void MainWindow::on_btnConvert_clicked()
     QTextStream in(&file);
 
     while(!in.atEnd()) {
-        QString line = in.readLine();
 
+        temp = (double)currentLine/(double)numberOfLines;
+        temp = temp * 100;
+
+        progressionForm->updateProgressionBar((int)temp);
+        currentLine += 1;
+
+        QString line = in.readLine();
         saveCommand(line);
 
 
@@ -368,7 +374,7 @@ void MainWindow::on_btnConvert_clicked()
     file.close();
 }
 
-void MainWindow::on_radioButton_clicked(bool checked)
+void MainWindow::on_checkBox_clicked(bool checked)
 {
     isSolidWorkFile = checked;
 }

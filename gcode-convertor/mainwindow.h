@@ -9,6 +9,7 @@
 #include <QQuaternion>
 #include <QVector3D>
 #include <QtMath>
+#include "progressionform.h"
 
 
 namespace Ui {
@@ -28,7 +29,7 @@ private slots:
 
     void on_btnConvert_clicked();
 
-    void on_radioButton_clicked(bool checked);
+    void on_checkBox_clicked(bool checked);
 
 private:
 
@@ -66,6 +67,9 @@ private:
     void copyExactCode();
     Ui::MainWindow *ui;
     QVector3D tempVector1;
+
+    ProgressionForm *progressionForm;
+    int numberOfLines;
 
 };
 

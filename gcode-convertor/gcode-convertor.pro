@@ -26,11 +26,14 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    command.cpp
+    command.cpp \
+    progressionform.cpp
 
 HEADERS  += mainwindow.h \
-    command.h
+    command.h \
+    progressionform.h
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    progressionform.ui
 
 
